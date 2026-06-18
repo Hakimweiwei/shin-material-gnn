@@ -37,7 +37,7 @@ def run_training():
     trainer = Trainer(model, optimizer, criterion, device=device)
     
     # Target 1-2 epoch for testing
-    epochs = 2
+    epochs = 100
     losses = trainer.train(train_loader, epochs=epochs)
     
     # Save the model

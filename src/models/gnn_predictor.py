@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GINEConv, global_mean_pool
+from torch_geometric.nn import GINEConv, global_add_pool
 
 class GNN_Predictor(nn.Module):
     """
@@ -71,7 +71,7 @@ class GNN_Predictor(nn.Module):
             
         # 4. Readout
         # Aggregate node features into graph-level features
-        x = global_mean_pool(x, batch) # Shape: [Batch, hidden_dim]
+        x = global_add_pool(x, batch) # Shape: [Batch, hidden_dim]
         
         # 5. Prediction Head
         out = self.prediction_head(x) # Shape: [Batch, 1]
