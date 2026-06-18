@@ -13,3 +13,16 @@ Anda adalah Senior AI Research Engineer dan Computational Chemist. Anda sedang m
 1. Sebutkan nama file yang sedang dibuat/dimodifikasi.
 2. Berikan FULL CODE (jangan gunakan placeholder `# ... sisa kode ...`).
 3. Jelaskan secara singkat mengapa dimensi tensor sudah benar berdasarkan `DATA_PIPELINE_LOGIC.md`.
+
+
+# AUTOMATED GIT WORKFLOW (MANDATORY)
+Setiap kali Anda menyelesaikan sebuah tugas besar (misalnya menyelesaikan FASE 1, memperbaiki bug, atau membuat modul baru), Anda WAJIB menawarkan diri untuk melakukan Git Commit dan Push ke repository GitHub secara otomatis via terminal IDE.
+
+1. **Target Repository:** `https://github.com/Hakimweiwei/shin-material-gnn`
+2. **Target Branch:** `main`
+3. **Commit Message Standard:** WAJIB menggunakan standar *Conventional Commits* (Baca `@GIT_WORKFLOW.md`).
+4. **Execution Command:** Setelah mendapat persetujuan saya, jalankan command berikut di terminal:
+   `git add .`
+   `git commit -m "[TYPE]: [DESKRIPSI SINGKAT]"`
+   `git push origin main`
+5. **Pengecualian:** JANGAN pernah commit file cache PyG, folder `venv`, atau folder `.vscode`. Pastikan `.gitignore` berfungsi dengan benar.
