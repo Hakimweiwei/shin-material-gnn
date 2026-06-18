@@ -1,6 +1,10 @@
 # Tasks Roadmap & Execution Protocol
 
-AI, Anda DILARANG mengerjakan semua fase sekaligus. Kerjakan per fase, berikan kodenya, lalu **BERHENTI dan TUNGGU PERSETUJUAN (Approval)** dari saya.
+## FASE 0: EDA (Exploratory Data Analysis)
+- [ ] Buat `src/analysis/eda.py`.
+- [ ] Generate histogram distribusi target dan jumlah atom.
+- [ ] Generate grid gambar 2D molekul menggunakan RDKit.
+- [ ] Commit & Push hasil EDA.
 
 ## FASE 1: Data Pipeline & Featurization (Current Phase)
 - [ ] Setup struktur folder proyek (`src/chemistry/`, `src/models/`, dll).

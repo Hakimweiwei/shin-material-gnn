@@ -8,59 +8,55 @@ Anda DILARANG membuat folder baru di luar struktur ini atau menaruh file di root
 ```text
 shin-material/
 │
-├── .antigravityrules               # Aturan sistem global AI
-├── .gitignore                 # Mengabaikan file cache Python, venv, dan data besar
-├── requirements.txt           # Daftar dependencies (PyTorch, PyG, RDKit, Streamlit)
+├── .antigravityrules          # Aturan sistem global AI (Wajib di root)
+├── .gitignore                 # Mengabaikan venv, cache PyG, dan file besar
+├── requirements.txt           # Daftar dependencies Python
 ├── README.md                  # Dokumentasi utama proyek
+├── train.py                   # Entry point utama untuk menjalankan training
 │
-├── 📁 .vscode/ atau 📁 .idea/   # Konfigurasi IDE (jangan di-commit ke GitHub)
+├── 📁 [Context Files]         # Kumpulan file .md (PROJECT_CONTEXT, DOMAIN_KNOWLEDGE, dll)
 │
 ├── 📁 data/                   # Penyimpanan Dataset
-│   ├── raw/                   # Dataset mentah (CSV/JSON, misal: Polymer Genome)
-│   ├── processed/             # Cache hasil konversi PyG (file .pt)
-│   └── external/              # Data dari pihak ketiga (jika ada)
+│   ├── raw/                   # Dataset mentah (delaney-processed.csv / ESOL)
+│   └── processed/             # Cache hasil konversi PyG (file .pt) -> ABAIKAN DI GIT
 │
-├── 📁 notebooks/              # Jupyter Notebooks untuk EDA (Exploratory Data Analysis)
-│   ├── 01_data_exploration.ipynb
-│   └── 02_model_experiment.ipynb
+├── 📁 reports/                # OUTPUT VISUAL & LAPORAN (Wajib di-commit ke GitHub)
+│   ├── eda/                   # Histogram, Grid Molekul (dari eda.py)
+│   └── evaluation/            # Parity Plot, Residual Plot, metrics.txt (dari evaluator.py)
+│
+├── 📁 saved_models/           # Bobot Model Hasil Training (.pth)
+│   └── best_model.pth         # Disimpan oleh trainer.py berdasarkan Val Loss terendah
 │
 ├── 📁 src/                    # SOURCE CODE UTAMA (Modular & Reusable)
 │   ├── __init__.py
 │   │
 │   ├── 📁 chemistry/          # Logika RDKit & Pemrosesan Molekul
-│   │   ├── __init__.py
-│   │   ├── featurizer.py      # Konversi SMILES -> PyG Data Object
+│   │   ├── featurizer.py      # Konversi SMILES -> PyG Data Object (Node=5, Edge=6)
 │   │   └── validators.py      # Validasi aturan kimia (valensi, sanitasi)
 │   │
 │   ├── 📁 data_pipeline/      # PyTorch Geometric Dataset & DataLoader
-│   │   ├── __init__.py
 │   │   ├── dataset.py         # Custom InMemoryDataset
 │   │   └── dataloader.py      # Setup DataLoader & Splitting (Train/Val/Test)
 │   │
-│   ├── 📁 models/             # Arsitektur Neural Network
-│   │   ├── __init__.py
-│   │   ├── gnn_predictor.py   # Implementasi GINEConv (Forward Prediction)
-│   │   └── generative.py      # (Fase Lanjutan) GraphVAE / GFlowNet
+│   ├── 📁 models/             # Arsitektur Neural Network (CODE ONLY)
+│   │   └── gnn_predictor.py   # Implementasi GINEConv (Forward Prediction)
 │   │
 │   ├── 📁 training/           # Training Loop & Evaluasi
-│   │   ├── __init__.py
 │   │   ├── trainer.py         # Loop training, validasi, dan checkpointing
 │   │   └── metrics.py         # Kalkulasi MAE, RMSE, R2 Score
 │   │
+│   ├── 📁 analysis/           # EDA & EVALUATION SCRIPTS
+│   │   ├── eda.py             # Generate plot distribusi & grid molekul
+│   │   └── evaluator.py       # Inference test set & generate Parity Plot
+│   │
 │   └── 📁 utils/              # Helper Functions
-│       ├── __init__.py
-│       ├── logger.py          # Setup Logging (logging module)
-│       └── visualizer.py      # Fungsi untuk plot loss & visualisasi 2D molekul
+│       ├── logger.py          # Setup Logging
+│       └── visualizer.py      # Fungsi bantuan untuk plot
 │
-├── 📁 app/                    # DEPLOYMENT & UI
-│   ├── main.py                # Entry point untuk Streamlit
-│   ├── components/            # UI Components (sidebar, forms)
-│   └── assets/                # CSS, images, logos
-│
-├── 📁 configs/                # Konfigurasi Hyperparameter (YAML/JSON)
+├── 📁 configs/                # Konfigurasi Hyperparameter
 │   └── default_config.yaml    # Learning rate, batch size, hidden dims
 │
 └── 📁 tests/                  # UNIT TESTS (Wajib untuk mencegah bug)
     ├── test_featurizer.py     # Test RDKit parsing & tensor shapes
-    ├── test_dataset.py        # Test PyG DataLoader
+    ├── test_dataset.py        # Test PyG DataLoader batching
     └── test_model.py          # Test Forward pass GNN
