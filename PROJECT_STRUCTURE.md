@@ -8,7 +8,7 @@ Anda DILARANG membuat folder baru di luar struktur ini atau menaruh file di root
 ```text
 shin-material/
 │
-├── .cursorrules               # Aturan sistem global AI
+├── .antigravityrules               # Aturan sistem global AI
 ├── .gitignore                 # Mengabaikan file cache Python, venv, dan data besar
 ├── requirements.txt           # Daftar dependencies (PyTorch, PyG, RDKit, Streamlit)
 ├── README.md                  # Dokumentasi utama proyek

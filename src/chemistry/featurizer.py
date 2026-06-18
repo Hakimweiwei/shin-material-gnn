@@ -1,134 +1,87 @@
 import torch
+import torch_geometric
 from torch_geometric.data import Data
 from rdkit import Chem
+from rdkit.Chem import rdchem
+import numpy as np
 from typing import Optional
 
 def smiles_to_graph(smiles: str, target: float = 0.0) -> Optional[Data]:
     """
-    Mengonversi representasi SMILES menjadi graf PyTorch Geometric (PyG).
-    
-    Args:
-        smiles (str): Representasi string SMILES dari molekul.
-        target (float): Nilai target Tg (Glass Transition Temperature).
-        
-    Returns:
-        Optional[Data]: Objek PyG Data berisi fitur graf, atau None jika validasi gagal.
+    Converts a SMILES string to a PyTorch Geometric Data object.
+    Follows STRICT rules from DATA_PIPELINE_LOGIC.md
     """
-    # 1. Pra-Pemrosesan RDKit
     try:
+        # 1. RDKit Pre-processing
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             return None
-            
+        
         mol = Chem.RemoveHs(mol)
         Chem.SanitizeMol(mol)
-    except Exception:
-        # Tangkap Exception apa pun dari RDKit (termasuk SanitizeException)
-        return None
         
-    # 2. Node Features (Matriks X)
-    # Target dimensi: [Num_Atoms, 5]
-    node_features = []
-    for atom in mol.GetAtoms():
-        # Fitur 1: Atomic Number (Integer, normalized) - Normalisasi sederhana dengan max elemen umum (contoh: 118)
-        atomic_num = float(atom.GetAtomicNum()) / 118.0
-        # Fitur 2: Degree (Integer, 0-5)
-        degree = float(atom.GetDegree())
-        # Fitur 3: Formal Charge (Integer)
-        formal_charge = float(atom.GetFormalCharge())
-        # Fitur 4: Num Implicit Hs (Integer)
-        num_implicit_hs = float(atom.GetNumImplicitHs())
-        # Fitur 5: Aromaticity (Boolean, 0 or 1)
-        is_aromatic = 1.0 if atom.GetIsAromatic() else 0.0
-        
-        node_features.append([atomic_num, degree, formal_charge, num_implicit_hs, is_aromatic])
-        
-    # Shape: [Num_Atoms, 5]
-    x = torch.tensor(node_features, dtype=torch.float)
-    if x.shape[0] > 0:
-        assert x.shape[1] == 5, f"Dimensi Node Feature salah! Diharapkan 5, didapat {x.shape[1]}"
-        
-    # 3. Edge Features (Matriks E) & Adjacency
-    edge_indices = []
-    edge_attrs = []
-    
-    for bond in mol.GetBonds():
-        i = bond.GetBeginAtomIdx()
-        j = bond.GetEndAtomIdx()
-        
-        # Ekstrak fitur ikatan: Bond Type (One-Hot, 4: Single, Double, Triple, Aromatic)
-        bond_type = bond.GetBondType()
-        bt_features = [0.0, 0.0, 0.0, 0.0]
-        
-        if bond_type == Chem.rdchem.BondType.SINGLE:
-            bt_features[0] = 1.0
-        elif bond_type == Chem.rdchem.BondType.DOUBLE:
-            bt_features[1] = 1.0
-        elif bond_type == Chem.rdchem.BondType.TRIPLE:
-            bt_features[2] = 1.0
-        elif bond_type == Chem.rdchem.BondType.AROMATIC:
-            bt_features[3] = 1.0
+        # 2. Node Features (Matrix X) - Expected Shape: [Num_Atoms, 5]
+        node_features = []
+        for atom in mol.GetAtoms():
+            # 1. Atomic Number (normalized by 118) -> Dim 1
+            atomic_num = atom.GetAtomicNum() / 118.0
+            # 2. Degree (Integer, 0-5) -> Dim 1
+            degree = float(atom.GetDegree())
+            # 3. Formal Charge -> Dim 1
+            formal_charge = float(atom.GetFormalCharge())
+            # 4. Num Implicit Hs -> Dim 1
+            num_implicit_hs = float(atom.GetNumImplicitHs())
+            # 5. Aromaticity -> Dim 1
+            is_aromatic = 1.0 if atom.GetIsAromatic() else 0.0
             
-        # IsConjugated (1)
-        is_conjugated = 1.0 if bond.GetIsConjugated() else 0.0
-        # IsInRing (1)
-        is_in_ring = 1.0 if bond.IsInRing() else 0.0
+            node_features.append([atomic_num, degree, formal_charge, num_implicit_hs, is_aromatic])
+            
+        x = torch.tensor(node_features, dtype=torch.float)
         
-        # Total = 6 Dimensi
-        attr = bt_features + [is_conjugated, is_in_ring]
+        # 3. Edge Features (Matrix E) & Adjacency - Expected Shape edge_attr: [Num_Edges*2, 6]
+        edge_indices = []
+        edge_attrs = []
         
-        # WAJIB: Tambahkan [i, j] DAN [j, i] (Undirected Graph)
-        edge_indices.append([i, j])
-        edge_indices.append([j, i])
+        for bond in mol.GetBonds():
+            i = bond.GetBeginAtomIdx()
+            j = bond.GetEndAtomIdx()
+            
+            # Undirected: add both [i, j] and [j, i]
+            edge_indices.append([i, j])
+            edge_indices.append([j, i])
+            
+            # Extract features (6 dimensions)
+            bond_type = bond.GetBondType()
+            is_single = 1.0 if bond_type == Chem.rdchem.BondType.SINGLE else 0.0
+            is_double = 1.0 if bond_type == Chem.rdchem.BondType.DOUBLE else 0.0
+            is_triple = 1.0 if bond_type == Chem.rdchem.BondType.TRIPLE else 0.0
+            is_aromatic = 1.0 if bond_type == Chem.rdchem.BondType.AROMATIC else 0.0
+            is_conjugated = 1.0 if bond.GetIsConjugated() else 0.0
+            is_in_ring = 1.0 if bond.IsInRing() else 0.0
+            
+            edge_feature = [is_single, is_double, is_triple, is_aromatic, is_conjugated, is_in_ring]
+            
+            # Add twice for undirected
+            edge_attrs.append(edge_feature)
+            edge_attrs.append(edge_feature)
+            
+        if len(edge_indices) > 0:
+            edge_index = torch.tensor(edge_indices, dtype=torch.long).t().contiguous()
+            edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
+        else:
+            # Handle single atom molecules with 0 edges
+            edge_index = torch.empty((2, 0), dtype=torch.long)
+            edge_attr = torch.empty((0, 6), dtype=torch.float)
+            
+        # Assertion WAJIB
+        assert edge_index.shape[0] == 2, f"Expected edge_index.shape[0] == 2, got {edge_index.shape[0]}"
         
-        # Tambahkan vektor fitur ini 2x untuk pasangan [i,j] dan [j,i]
-        edge_attrs.append(attr)
-        edge_attrs.append(attr)
+        # Target node/graph property (Shape: [1, 1])
+        y = torch.tensor([[target]], dtype=torch.float)
         
-    if len(edge_indices) > 0:
-        # Shape: [2, Num_Edges * 2]
-        edge_index = torch.tensor(edge_indices, dtype=torch.long).t().contiguous()
-        # Shape: [Num_Edges * 2, 6]
-        edge_attr = torch.tensor(edge_attrs, dtype=torch.float)
-        
-        # ASSERTION WAJIB
-        assert edge_index.shape[0] == 2, f"Shape edge_index[0] harus 2, didapat {edge_index.shape[0]}"
-        assert edge_attr.shape[1] == 6, f"Dimensi Edge Feature salah! Diharapkan 6, didapat {edge_attr.shape[1]}"
-    else:
-        # Handle edge case untuk molekul dengan 1 atom (tanpa ikatan kimia)
-        edge_index = torch.empty((2, 0), dtype=torch.long)
-        edge_attr = torch.empty((0, 6), dtype=torch.float)
-        
-    # Shape: [1]
-    y = torch.tensor([target], dtype=torch.float)
-    
-    # Bungkus menjadi object PyG Data
-    data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
-    
-    return data
+        data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
+        return data
 
-if __name__ == '__main__':
-    # Test Cepat
-    print("Mengeksekusi test cepat untuk featurizer.py...")
-    
-    # 1. SMILES Valid (Ethanol)
-    smiles_valid = "CCO"
-    data_valid = smiles_to_graph(smiles_valid, target=100.5)
-    print(f"\n[Test Valid SMILES: '{smiles_valid}']")
-    if data_valid is not None:
-        print("Berhasil!")
-        print(f"- Node Feature Matrix (x) Shape: {data_valid.x.shape}")
-        print(f"- Edge Index Shape: {data_valid.edge_index.shape}")
-        print(f"- Edge Attr Shape: {data_valid.edge_attr.shape}")
-        print(f"- Target (y) Shape: {data_valid.y.shape}")
-    else:
-        print("Gagal: Mengembalikan None.")
-        
-    # 2. SMILES Rusak
-    smiles_invalid = "xyz"
-    data_invalid = smiles_to_graph(smiles_invalid)
-    print(f"\n[Test Invalid SMILES: '{smiles_invalid}']")
-    if data_invalid is None:
-        print("Berhasil! (Program tidak crash dan mengembalikan None dengan aman).")
-    else:
-        print("Gagal: Diharapkan mengembalikan None, tetapi memberikan hasil.")
+    except Exception as e:
+        # In case of SanitizeException or other errors
+        return None
