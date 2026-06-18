@@ -1,36 +1,48 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import shutil
+import pandas as pd
+import torch
 
-from src.data_pipeline.dataloader import get_dataloaders
+# Add the src directory to the sys.path so we can import from src
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-def run_tests():
-    print("--- Memulai PyG DataLoader Batch Verification ---")
+from src.data_pipeline.dataset import PolymerDataset
+
+def test_dataset():
+    print("Setting up dummy data...")
+    dummy_data = {
+        'smiles': ['CCO', 'CCC', 'CCN', 'INVALID_SMILES_SHOULD_BE_SKIPPED'],
+        'target': [1.5, 2.0, 1.2, 0.0]
+    }
+    df = pd.DataFrame(dummy_data)
     
-    # Kita menggunakan default root='data'
-    # Jika dataset belum diproses, proses ini akan memakan waktu
-    train_loader, val_loader, test_loader = get_dataloaders(root_dir='data', batch_size=32)
+    test_root = './tests/temp_data'
     
-    print(f"Total Batches in Train Loader: {len(train_loader)}")
+    # Ensure clean state
+    if os.path.exists(test_root):
+        shutil.rmtree(test_root)
+        
+    print("Creating PolymerDataset...")
+    dataset = PolymerDataset(root=test_root, dataframe=df, smiles_col='smiles', target_col='target')
     
-    # Ambil 1 batch dari train_loader
-    batch = next(iter(train_loader))
+    print(f"Dataset created with {len(dataset)} valid graphs.")
     
-    print("\n[Shape Information]")
-    print(f"Batch x shape (Total_Semua_Atom, 5): {batch.x.shape}")
-    print(f"Batch edge_index shape (2, Total_Semua_Edge): {batch.edge_index.shape}")
-    print(f"Batch edge_attr shape (Total_Semua_Edge, 6): {batch.edge_attr.shape}")
-    print(f"Batch y shape (Num_Graphs, 1): {batch.y.shape}")
+    # There are 3 valid smiles, 1 invalid, so length should be 3
+    assert len(dataset) == 3, f"Expected dataset length 3, got {len(dataset)}"
     
-    if hasattr(batch, 'batch'):
-        print(f"Batch batch tensor shape (Total_Semua_Atom): {batch.batch.shape}")
+    # Test a single data point
+    data = dataset[0]
+    assert data.x is not None, "Node features should exist"
+    assert data.edge_index is not None, "Edge indices should exist"
+    assert data.edge_attr is not None, "Edge attributes should exist"
+    assert data.y is not None, "Target should exist"
     
-    # Validasi sesuai DATA_PIPELINE_LOGIC.md
-    # Node feature: 5 dimensi, Edge feature: 6 dimensi
-    assert batch.x.shape[1] == 5, f"Node features seharusnya memiliki 5 kolom, tapi didapatkan {batch.x.shape[1]}"
-    assert batch.edge_attr.shape[1] == 6, f"Edge features seharusnya memiliki 6 kolom, tapi didapatkan {batch.edge_attr.shape[1]}"
+    print("Dataset tests passed successfully!")
     
-    print("\n✅ DataLoader Test Passed!")
+    # Cleanup
+    if os.path.exists(test_root):
+        shutil.rmtree(test_root)
 
 if __name__ == "__main__":
-    run_tests()
+    test_dataset()
