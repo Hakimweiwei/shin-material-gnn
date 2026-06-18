@@ -1,30 +1,24 @@
 import torch
 from torch_geometric.loader import DataLoader
 from torch.utils.data import random_split
-from src.data_pipeline.dataset import PolymerDataset
+from typing import Tuple
 
-def get_dataloaders(root_dir: str = 'data', batch_size: int = 32):
+def get_dataloaders(dataset, batch_size: int = 32, train_ratio: float = 0.8, val_ratio: float = 0.1) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """
-    Menginisialisasi PolymerDataset dan mengembalikan DataLoader untuk
-    Train (80%), Validation (10%), dan Test (10%).
+    Splits the PyG dataset into train, validation, and test sets and returns DataLoaders.
+    Default batch_size is 32 as requested.
     """
-    dataset = PolymerDataset(root=root_dir)
-    
     total_size = len(dataset)
-    train_size = int(0.8 * total_size)
-    val_size = int(0.1 * total_size)
+    train_size = int(train_ratio * total_size)
+    val_size = int(val_ratio * total_size)
     test_size = total_size - train_size - val_size
     
-    # Split dataset menggunakan random_split
-    generator = torch.Generator().manual_seed(42) # Reproducibility
+    # Use fixed generator for reproducible splits
+    generator = torch.Generator().manual_seed(42)
     train_dataset, val_dataset, test_dataset = random_split(
-        dataset, 
-        [train_size, val_size, test_size],
-        generator=generator
+        dataset, [train_size, val_size, test_size], generator=generator
     )
     
-    # Inisialisasi DataLoader
-    # Train dengan shuffle=True, Val/Test dengan shuffle=False
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
