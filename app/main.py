@@ -47,7 +47,8 @@ st.markdown("Masukkan struktur molekul dalam format **SMILES** untuk memprediksi
 smiles_input = st.text_input("SMILES String", value="CCO", help="Contoh: CCO (Etanol), c1ccccc1 (Benzena)")
 
 if smiles_input:
-    mol = Chem.MolFromSmiles(smiles_input)
+    smiles_clean = smiles_input.strip()
+    mol = Chem.MolFromSmiles(smiles_clean)
     if mol is None:
         st.error("❌ SMILES tidak valid! Harap periksa kembali format SMILES Anda.")
     else:
@@ -62,7 +63,7 @@ if smiles_input:
                 model, device = load_model()
                 
                 # Featurize
-                graph_data = smiles_to_graph(smiles_input)
+                graph_data = smiles_to_graph(smiles_clean)
                 
                 if graph_data is None:
                     st.error("Gagal melakukan pra-pemrosesan RDKit pada molekul ini.")
